@@ -1,0 +1,5 @@
+{
+  "name": "FormRecall",
+  "description": "Extensión inteligente que recuerda tus datos de formularios y utiliza Gemini AI para autocompletar campos en cualquier sitio web basándose en tu historial.",
+  "requestFramePermissions": []
+}
