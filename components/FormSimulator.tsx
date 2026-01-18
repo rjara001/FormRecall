@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { FormField, FormEntry, AutofillSuggestion } from '../types';
 import { getSmartAutofillSuggestions } from '../services/geminiService';
 
@@ -68,7 +68,6 @@ const FormSimulator: React.FC<FormSimulatorProps> = ({ onSaveEntry, history }) =
 
   return (
     <div className="space-y-8 max-w-5xl mx-auto">
-      {/* Mock Browser UI */}
       <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200">
         <div className="bg-slate-100 p-4 flex items-center space-x-4 border-b border-slate-200">
           <div className="flex space-x-2 shrink-0">
@@ -162,23 +161,23 @@ const FormSimulator: React.FC<FormSimulatorProps> = ({ onSaveEntry, history }) =
               {suggestions.length > 0 ? (
                 <div className="space-y-4 relative z-10">
                   <p className="text-indigo-100 text-sm leading-relaxed">
-                    Hemos encontrado coincidencias en tu historial para estos campos:
+                    Hemos encontrado coincidencias:
                   </p>
                   <div className="space-y-3 max-h-[320px] overflow-y-auto pr-2 custom-scrollbar">
                     {suggestions.map((s, idx) => (
-                      <div key={idx} className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20">
+                      <div key={idx} className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 animate-in">
                         <div className="flex justify-between items-start mb-2">
-                          <span className="font-bold text-white text-xs uppercase tracking-tighter">{s.fieldName}</span>
-                          <span className="text-[9px] bg-indigo-400/50 text-white px-2 py-0.5 rounded-full font-bold">
+                          <span className="font-bold text-white text-[10px] uppercase tracking-tighter">{s.fieldName}</span>
+                          <span className="text-[8px] bg-indigo-400/50 text-white px-2 py-0.5 rounded-full font-bold">
                             {Math.round(s.confidence * 100)}% Match
                           </span>
                         </div>
-                        <p className="text-white font-medium mb-3 text-sm">"{s.suggestedValue}"</p>
+                        <p className="text-white font-medium mb-3 text-sm truncate">"{s.suggestedValue}"</p>
                         <button 
                           onClick={() => applySuggestion(s)}
-                          className="w-full py-2 bg-white text-indigo-600 rounded-xl text-xs font-black hover:bg-indigo-50 transition-colors uppercase"
+                          className="w-full py-2 bg-white text-indigo-600 rounded-xl text-[10px] font-black hover:bg-indigo-50 transition-colors uppercase"
                         >
-                          Aplicar este dato
+                          Aplicar
                         </button>
                       </div>
                     ))}
@@ -190,31 +189,10 @@ const FormSimulator: React.FC<FormSimulatorProps> = ({ onSaveEntry, history }) =
                     FormRecall está escuchando... rellena cualquier formulario y lo recordaré por ti.
                   </p>
                   <div className="p-4 bg-white/5 rounded-2xl border border-white/10 italic text-xs text-indigo-200">
-                    "La próxima vez que veas un campo similar, Gemini mapeará tus datos automáticamente sin importar cómo se llame el input."
+                    "La próxima vez que veas un campo similar, Gemini mapeará tus datos automáticamente."
                   </div>
                 </div>
               )}
-            </div>
-
-            <div className="bg-slate-50 border border-slate-200 rounded-3xl p-8">
-              <h4 className="font-bold text-slate-800 mb-4 flex items-center">
-                <span className="w-2 h-2 bg-emerald-500 rounded-full mr-2 animate-pulse"></span>
-                Estado de la Extensión
-              </h4>
-              <div className="space-y-3 font-mono text-[10px] text-slate-500">
-                <div className="flex justify-between">
-                  <span>Modo:</span>
-                  <span className="text-indigo-600 font-bold">Simulación Activa</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>IA Engine:</span>
-                  <span className="text-indigo-600 font-bold">Gemini 3 Flash</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Memoria:</span>
-                  <span className="text-indigo-600 font-bold">{history.length} sesiones</span>
-                </div>
-              </div>
             </div>
           </div>
         </div>

@@ -6,11 +6,7 @@
   "description": "Tu memoria inteligente para formularios web impulsada por Gemini AI.",
   "permissions": ["storage", "activeTab"],
   "action": {
-    "default_popup": "index.html",
-    "default_icon": {
-      "16": "icon16.png",
-      "48": "icon48.png",
-      "128": "icon128.png"
-    }
-  }
+    "default_popup": "index.html"
+  },
+  "host_permissions": ["<all_urls>"]
 }
