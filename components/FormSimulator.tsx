@@ -9,14 +9,14 @@ interface FormSimulatorProps {
 }
 
 const FormSimulator: React.FC<FormSimulatorProps> = ({ onSaveEntry, history }) => {
-  const [url, setUrl] = useState('https://shopping.example/checkout');
-  const [title, setTitle] = useState('Secure Checkout - Example Store');
+  const [url, setUrl] = useState('https://servicios.online/registro');
+  const [title, setTitle] = useState('Registro de Usuario');
   const [fields, setFields] = useState<FormField[]>([
-    { name: 'full_name', label: 'Full Name', value: '', type: 'text' },
-    { name: 'user_email', label: 'Email Address', value: '', type: 'email' },
-    { name: 'phone_num', label: 'Phone', value: '', type: 'tel' },
-    { name: 'shipping_addr', label: 'Address', value: '', type: 'text' },
-    { name: 'zip_code', label: 'Postal Code', value: '', type: 'text' },
+    { name: 'nombre_completo', label: 'Nombre Completo', value: '', type: 'text' },
+    { name: 'correo_electronico', label: 'Email', value: '', type: 'email' },
+    { name: 'fecha_nacimiento', label: 'Fecha de Nacimiento', value: '', type: 'date' },
+    { name: 'ciudad_residencia', label: 'Ciudad', value: '', type: 'text' },
+    { name: 'codigo_postal', label: 'Código Postal', value: '', type: 'text' },
   ]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [suggestions, setSuggestions] = useState<AutofillSuggestion[]>([]);
@@ -27,19 +27,24 @@ const FormSimulator: React.FC<FormSimulatorProps> = ({ onSaveEntry, history }) =
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const filledFields = fields.filter(f => f.value.trim() !== '');
+    if (filledFields.length === 0) {
+      alert('Por favor, rellena al menos un campo.');
+      return;
+    }
     onSaveEntry({
       pageUrl: url,
       pageTitle: title,
-      fields: fields.filter(f => f.value.trim() !== '')
+      fields: filledFields
     });
-    alert('Form data captured and stored in extension database!');
-    // Clear form after submission
+    alert('¡Datos capturados con éxito por FormRecall!');
     setFields(prev => prev.map(f => ({ ...f, value: '' })));
+    setSuggestions([]);
   };
 
   const handleSmartAutofill = async () => {
     if (history.length === 0) {
-      alert("No history found. Please fill some forms manually first.");
+      alert("No hay historial guardado. Rellena algunos formularios manualmente primero.");
       return;
     }
     setIsAnalyzing(true);
@@ -61,134 +66,155 @@ const FormSimulator: React.FC<FormSimulatorProps> = ({ onSaveEntry, history }) =
     setSuggestions(prev => prev.filter(item => item.fieldName !== s.fieldName));
   };
 
-  const applyAllSuggestions = () => {
-    setFields(prev => prev.map(f => {
-      const suggestion = suggestions.find(s => s.fieldName === f.name);
-      return suggestion ? { ...f, value: suggestion.suggestedValue } : f;
-    }));
-    setSuggestions([]);
-  };
-
   return (
-    <div className="space-y-6">
-      <div className="bg-indigo-600 rounded-2xl p-6 text-white shadow-xl shadow-indigo-100">
-        <h2 className="text-xl font-bold mb-2">Browser Page Simulator</h2>
-        <p className="text-indigo-100 text-sm mb-4">
-          This simulates a real website where our extension would be active.
-        </p>
-        <div className="flex flex-col md:flex-row gap-4 bg-white/10 p-4 rounded-xl backdrop-blur-md">
-          <div className="flex-1">
-            <label className="text-[10px] uppercase font-bold text-white/70 block mb-1">Current URL</label>
+    <div className="space-y-8 max-w-5xl mx-auto">
+      {/* Mock Browser UI */}
+      <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200">
+        <div className="bg-slate-100 p-4 flex items-center space-x-4 border-b border-slate-200">
+          <div className="flex space-x-2 shrink-0">
+            <div className="w-3 h-3 rounded-full bg-red-400"></div>
+            <div className="w-3 h-3 rounded-full bg-amber-400"></div>
+            <div className="w-3 h-3 rounded-full bg-emerald-400"></div>
+          </div>
+          <div className="flex-1 bg-white rounded-xl border border-slate-200 px-4 py-2 flex items-center space-x-2 text-sm text-slate-400">
+            <span className="text-emerald-500">🔒</span>
             <input 
               value={url} 
               onChange={(e) => setUrl(e.target.value)}
-              className="bg-white/20 border-white/30 text-white w-full px-3 py-1.5 rounded outline-none placeholder-white/50 text-sm"
+              className="w-full bg-transparent outline-none text-slate-600 font-medium"
             />
           </div>
-          <div className="flex-1">
-            <label className="text-[10px] uppercase font-bold text-white/70 block mb-1">Page Title</label>
-            <input 
-              value={title} 
-              onChange={(e) => setTitle(e.target.value)}
-              className="bg-white/20 border-white/30 text-white w-full px-3 py-1.5 rounded outline-none placeholder-white/50 text-sm"
-            />
+          <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold shadow-lg shadow-indigo-200 cursor-pointer hover:rotate-12 transition-transform">
+            FR
           </div>
         </div>
-      </div>
 
-      <div className="grid md:grid-cols-3 gap-8">
-        <div className="md:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-bold text-slate-800">Form on Page</h3>
-            <button 
-              onClick={handleSmartAutofill}
-              disabled={isAnalyzing || history.length === 0}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                isAnalyzing 
-                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-200 shadow-sm'
-              }`}
-            >
-              {isAnalyzing ? '✨ Analyzing...' : '✨ Smart AI Autofill'}
-            </button>
-          </div>
+        <div className="p-10 grid lg:grid-cols-5 gap-12 bg-white">
+          <div className="lg:col-span-3">
+            <header className="mb-10">
+              <input 
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="text-3xl font-black text-slate-900 w-full outline-none focus:text-indigo-600 transition-colors"
+              />
+              <p className="text-slate-400 mt-2">Este es un formulario de prueba para simular la captura de datos.</p>
+            </header>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {fields.map((field) => (
-              <div key={field.name}>
-                <label className="block text-sm font-medium text-slate-600 mb-1.5">{field.label}</label>
-                <div className="relative">
-                  <input
-                    type={field.type}
-                    value={field.value}
-                    onChange={(e) => handleInputChange(field.name, e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none"
-                    placeholder={`Enter ${field.label.toLowerCase()}...`}
-                  />
-                  {suggestions.some(s => s.fieldName === field.name) && (
-                    <div className="absolute top-1/2 -right-4 transform translate-x-full -translate-y-1/2">
-                      <div className="animate-pulse w-3 h-3 bg-indigo-500 rounded-full"></div>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {fields.map((field) => {
+                const suggestion = suggestions.find(s => s.fieldName === field.name);
+                return (
+                  <div key={field.name} className="relative">
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">
+                      {field.label}
+                    </label>
+                    <div className="relative flex items-center">
+                      <input
+                        type={field.type}
+                        value={field.value}
+                        onChange={(e) => handleInputChange(field.name, e.target.value)}
+                        className={`w-full px-5 py-4 bg-slate-50 border ${suggestion ? 'border-indigo-300 ring-2 ring-indigo-100' : 'border-slate-200'} rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:bg-white focus:border-indigo-500 transition-all outline-none font-medium text-slate-700`}
+                        placeholder={`Ingresa tu ${field.label.toLowerCase()}...`}
+                      />
+                      {suggestion && (
+                        <button
+                          type="button"
+                          onClick={() => applySuggestion(suggestion)}
+                          className="absolute right-4 bg-indigo-600 text-white text-[10px] px-3 py-1.5 rounded-lg font-bold hover:bg-indigo-700 animate-bounce"
+                        >
+                          LLENAR IA
+                        </button>
+                      )}
                     </div>
-                  )}
-                </div>
-              </div>
-            ))}
-            <button 
-              type="submit"
-              className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition-all transform active:scale-95 shadow-lg shadow-slate-200 mt-4"
-            >
-              Submit & Capture Data
-            </button>
-          </form>
-        </div>
-
-        <div className="space-y-4">
-          <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-6">
-            <h4 className="font-bold text-indigo-900 mb-3 flex items-center">
-              <span className="mr-2">💡</span>
-              AI Recommendations
-            </h4>
-            
-            {suggestions.length > 0 ? (
-              <div className="space-y-3">
+                  </div>
+                );
+              })}
+              <div className="pt-4 flex flex-col sm:flex-row gap-4">
                 <button 
-                  onClick={applyAllSuggestions}
-                  className="w-full text-xs font-bold text-indigo-600 border border-indigo-200 bg-white py-2 rounded-lg hover:bg-indigo-100 mb-4"
+                  type="submit"
+                  className="flex-1 bg-slate-900 text-white py-4 rounded-2xl font-black hover:bg-slate-800 transition-all transform active:scale-[0.98] shadow-xl shadow-slate-200 uppercase tracking-widest"
                 >
-                  Apply All AI Suggestions
+                  Enviar y Guardar
                 </button>
-                <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
-                  {suggestions.map((s, idx) => (
-                    <div key={idx} className="bg-white p-3 rounded-xl border border-indigo-100 shadow-sm text-xs">
-                      <div className="flex justify-between items-start mb-1">
-                        <span className="font-bold text-slate-700">{s.fieldName}</span>
-                        <span className="text-[10px] bg-green-100 text-green-700 px-1.5 rounded">{Math.round(s.confidence * 100)}% Match</span>
-                      </div>
-                      <p className="text-slate-500 italic mb-2">"{s.suggestedValue}"</p>
-                      <button 
-                        onClick={() => applySuggestion(s)}
-                        className="w-full py-1.5 bg-indigo-600 text-white rounded font-semibold hover:bg-indigo-700 transition-colors"
-                      >
-                        Apply
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                <button 
+                  type="button"
+                  onClick={handleSmartAutofill}
+                  disabled={isAnalyzing}
+                  className={`px-8 py-4 rounded-2xl font-bold transition-all border-2 ${
+                    isAnalyzing 
+                    ? 'bg-slate-100 border-slate-100 text-slate-400 cursor-not-allowed'
+                    : 'border-indigo-600 text-indigo-600 hover:bg-indigo-50'
+                  }`}
+                >
+                  {isAnalyzing ? '✨ Analizando...' : '✨ Sugerir con IA'}
+                </button>
               </div>
-            ) : (
-              <p className="text-xs text-indigo-400 leading-relaxed">
-                Fill a form and submit it to save data. Next time, use the Smart AI button to let Gemini map your saved data to this form's fields!
-              </p>
-            )}
+            </form>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-            <h4 className="font-bold text-slate-800 mb-3">Extension Debugger</h4>
-            <div className="text-[10px] font-mono bg-slate-900 text-emerald-400 p-3 rounded-lg overflow-x-auto">
-              <p className="mb-1">{">"} EXT_READY: true</p>
-              <p className="mb-1">{">"} DATABASE_CONNECTION: OK</p>
-              <p className="mb-1">{">"} GEMINI_AI_SESSION: Active</p>
-              <p className="text-slate-400">{">"} history_records: {history.length}</p>
+          <div className="lg:col-span-2 space-y-6">
+            <div className="bg-indigo-600 rounded-3xl p-8 text-white shadow-2xl shadow-indigo-100 relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-4 opacity-10 text-6xl">🤖</div>
+              <h4 className="font-black text-xl mb-4 flex items-center">
+                Asistente FormRecall
+              </h4>
+              
+              {suggestions.length > 0 ? (
+                <div className="space-y-4 relative z-10">
+                  <p className="text-indigo-100 text-sm leading-relaxed">
+                    Hemos encontrado coincidencias en tu historial para estos campos:
+                  </p>
+                  <div className="space-y-3 max-h-[320px] overflow-y-auto pr-2 custom-scrollbar">
+                    {suggestions.map((s, idx) => (
+                      <div key={idx} className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20">
+                        <div className="flex justify-between items-start mb-2">
+                          <span className="font-bold text-white text-xs uppercase tracking-tighter">{s.fieldName}</span>
+                          <span className="text-[9px] bg-indigo-400/50 text-white px-2 py-0.5 rounded-full font-bold">
+                            {Math.round(s.confidence * 100)}% Match
+                          </span>
+                        </div>
+                        <p className="text-white font-medium mb-3 text-sm">"{s.suggestedValue}"</p>
+                        <button 
+                          onClick={() => applySuggestion(s)}
+                          className="w-full py-2 bg-white text-indigo-600 rounded-xl text-xs font-black hover:bg-indigo-50 transition-colors uppercase"
+                        >
+                          Aplicar este dato
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-indigo-100 text-sm leading-relaxed">
+                    FormRecall está escuchando... rellena cualquier formulario y lo recordaré por ti.
+                  </p>
+                  <div className="p-4 bg-white/5 rounded-2xl border border-white/10 italic text-xs text-indigo-200">
+                    "La próxima vez que veas un campo similar, Gemini mapeará tus datos automáticamente sin importar cómo se llame el input."
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="bg-slate-50 border border-slate-200 rounded-3xl p-8">
+              <h4 className="font-bold text-slate-800 mb-4 flex items-center">
+                <span className="w-2 h-2 bg-emerald-500 rounded-full mr-2 animate-pulse"></span>
+                Estado de la Extensión
+              </h4>
+              <div className="space-y-3 font-mono text-[10px] text-slate-500">
+                <div className="flex justify-between">
+                  <span>Modo:</span>
+                  <span className="text-indigo-600 font-bold">Simulación Activa</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>IA Engine:</span>
+                  <span className="text-indigo-600 font-bold">Gemini 3 Flash</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Memoria:</span>
+                  <span className="text-indigo-600 font-bold">{history.length} sesiones</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
