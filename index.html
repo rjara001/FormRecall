@@ -5,15 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FormRecall - Tu Memoria en la Web</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="global.css">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f8fafc;
-        }
-    </style>
 <script type="importmap">
 {
   "imports": {
@@ -28,12 +21,10 @@
 </head>
 <body>
     <div id="root">
-        <!-- Loader inicial para evitar el cuadro blanco absoluto -->
-        <div style="display: flex; height: 100vh; width: 100vw; align-items: center; justify-content: center; background: #f8fafc; color: #6366f1; font-weight: bold; font-family: sans-serif;">
+        <div class="initial-loader">
             Iniciando FormRecall...
         </div>
     </div>
-    <!-- CRITICAL: Cargar el punto de entrada de la aplicación -->
     <script type="module" src="index.tsx"></script>
 </body>
 </html>
