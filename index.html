@@ -19,6 +19,7 @@
   "imports": {
     "react": "https://esm.sh/react@^19.2.3",
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react-dom/client": "https://esm.sh/react-dom@^19.2.3/client",
     "react/": "https://esm.sh/react@^19.2.3/",
     "@google/genai": "https://esm.sh/@google/genai@^1.37.0"
   }
@@ -26,6 +27,13 @@
 </script>
 </head>
 <body>
-    <div id="root"></div>
+    <div id="root">
+        <!-- Loader inicial para evitar el cuadro blanco absoluto -->
+        <div style="display: flex; height: 100vh; width: 100vw; align-items: center; justify-content: center; background: #f8fafc; color: #6366f1; font-weight: bold; font-family: sans-serif;">
+            Iniciando FormRecall...
+        </div>
+    </div>
+    <!-- CRITICAL: Cargar el punto de entrada de la aplicación -->
+    <script type="module" src="index.tsx"></script>
 </body>
 </html>
