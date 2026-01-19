@@ -1,4 +1,19 @@
 
+/* Dimensiones fijas para el popup de la extensión */
+html, body {
+  width: 800px;
+  height: 600px;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* Evita scroll doble en la ventana principal */
+  background-color: #f8fafc;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+}
+
 /* Custom Scrollbar for the Assistant panel */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
@@ -26,11 +41,4 @@
 
 .animate-in {
   animation: fadeIn 0.5s ease-out forwards;
-}
-
-/* Base styles to ensure consistency */
-body {
-  margin: 0;
-  padding: 0;
-  min-width: 350px; /* Suggesting a minimum width for extension popup */
 }
