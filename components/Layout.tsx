@@ -9,36 +9,40 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => {
-  const tabs = [
-    { id: AppTab.BROWSER, label: 'Navegador', icon: '🌐' },
-    { id: AppTab.VAULT, label: 'Mi Bóveda', icon: '🛡️' },
-    { id: AppTab.SETTINGS, label: 'Ajustes', icon: '⚙️' },
-  ];
-
   return (
-    <div className="h-full flex flex-col">
-      <header className="bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between shrink-0">
+    <div className="h-full flex flex-col bg-slate-50">
+      <header className="px-8 py-5 flex items-center justify-between border-b border-slate-200 bg-white shadow-sm z-50">
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-xs">FR</div>
-          <h1 className="font-black text-slate-800 tracking-tight">FormRecall <span className="text-indigo-600 text-[10px] ml-1 uppercase">v2.0</span></h1>
+          <div className="w-9 h-9 bg-violet-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-violet-200">
+            <span className="text-lg font-black">F</span>
+          </div>
+          <div>
+            <h1 className="text-sm font-black text-slate-900 tracking-tight">FormRecall Vault</h1>
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Memoria Activa</p>
+          </div>
         </div>
-        <nav className="flex space-x-1">
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => onTabChange(tab.id)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                activeTab === tab.id 
-                ? 'bg-indigo-600 text-white' 
-                : 'text-slate-400 hover:bg-slate-100'
-              }`}
-            >
-              {tab.icon} {tab.label}
-            </button>
-          ))}
+        <nav className="flex space-x-1 p-1 bg-slate-100 rounded-xl">
+          <button 
+            onClick={() => onTabChange(AppTab.VAULT)}
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === AppTab.VAULT ? 'bg-white text-violet-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+          >
+            🛡️ Bóveda
+          </button>
+          <button 
+            onClick={() => onTabChange(AppTab.CAPTURE_DEMO)}
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === AppTab.CAPTURE_DEMO ? 'bg-white text-violet-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+          >
+            ⚡ Captura
+          </button>
+          <button 
+            onClick={() => onTabChange(AppTab.SETTINGS)}
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === AppTab.SETTINGS ? 'bg-white text-violet-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+          >
+            ⚙️ Ajustes
+          </button>
         </nav>
       </header>
-      <main className="flex-1 overflow-hidden relative">
+      <main className="flex-1 overflow-hidden">
         {children}
       </main>
     </div>

@@ -2,17 +2,17 @@
 export interface SavedValue {
   id: string;
   value: string;
-  category: string;
   timestamp: string;
+  usageCount: number;
 }
 
 export enum AppTab {
-  BROWSER = 'browser', // El simulador actúa como el navegador activo
-  VAULT = 'vault',     // Gestión de datos
+  VAULT = 'vault',
+  CAPTURE_DEMO = 'capture_demo',
   SETTINGS = 'settings'
 }
 
-// Added FormField interface to match usage in components and services
+// Added FormField interface to define the structure of form inputs
 export interface FormField {
   name: string;
   label: string;
@@ -20,7 +20,7 @@ export interface FormField {
   type: string;
 }
 
-// Added FormEntry interface for historical form data tracking
+// Added FormEntry interface to track historical form submissions
 export interface FormEntry {
   id: string;
   pageUrl: string;
@@ -29,7 +29,7 @@ export interface FormEntry {
   fields: FormField[];
 }
 
-// Added AutofillSuggestion interface for AI-generated response mappings
+// Added AutofillSuggestion interface for Gemini AI recommendations
 export interface AutofillSuggestion {
   fieldName: string;
   suggestedValue: string;

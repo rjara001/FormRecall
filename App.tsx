@@ -1,85 +1,85 @@
 
 import React, { useState, useEffect } from 'react';
 import Layout from './components/Layout';
-import BrowserSimulator from './components/BrowserSimulator';
 import VaultManager from './components/VaultManager';
+import BrowserSimulator from './components/BrowserSimulator';
 import { SavedValue, AppTab } from './types';
 
-const STORAGE_KEY = 'form_recall_vault_v2';
+const STORAGE_KEY = 'form_recall_v3_vault';
 
 const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<AppTab>(AppTab.BROWSER);
+  const [activeTab, setActiveTab] = useState<AppTab>(AppTab.VAULT);
   const [vault, setVault] = useState<SavedValue[]>([]);
 
-  // Cargar datos
+  // Persistencia
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      setVault(JSON.parse(saved));
-    } else {
-      // Datos iniciales de ejemplo
-      setVault([
-        { id: '1', value: 'Juan Pérez', category: 'Nombre', timestamp: new Date().toISOString() },
-        { id: '2', value: 'juan@email.com', category: 'Email', timestamp: new Date().toISOString() }
-      ]);
-    }
+    if (saved) setVault(JSON.parse(saved));
   }, []);
 
-  // Guardar datos
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(vault));
   }, [vault]);
 
-  const handleCapture = (newValue: string) => {
-    const normalized = newValue.trim();
-    if (!normalized) return;
+  // Captura de valor único
+  const handleCapture = (text: string) => {
+    const val = text.trim();
+    if (!val || val.length < 2) return;
 
-    // Solo guardar si es único
-    const exists = vault.some(v => v.value.toLowerCase() === normalized.toLowerCase());
-    if (!exists) {
-      const entry: SavedValue = {
-        id: Math.random().toString(36).substr(2, 9),
-        value: normalized,
-        category: 'Sin categorizar',
-        timestamp: new Date().toISOString()
+    // Verificar unicidad (case insensitive)
+    const exists = vault.find(v => v.value.toLowerCase() === val.toLowerCase());
+    
+    if (exists) {
+      // Si existe, aumentamos el contador de uso
+      setVault(prev => prev.map(v => v.id === exists.id ? { ...v, usageCount: v.usageCount + 1 } : v));
+    } else {
+      // Si es nuevo, lo guardamos
+      const newVal: SavedValue = {
+        id: crypto.randomUUID(),
+        value: val,
+        timestamp: new Date().toISOString(),
+        usageCount: 1
       };
-      setVault(prev => [entry, ...prev]);
+      setVault(prev => [newVal, ...prev]);
     }
   };
 
-  const handleUpdateValue = (id: string, updated: Partial<SavedValue>) => {
-    setVault(prev => prev.map(v => v.id === id ? { ...v, ...updated } : v));
+  const handleUpdate = (id: string, newValue: string) => {
+    setVault(prev => prev.map(v => v.id === id ? { ...v, value: newValue } : v));
   };
 
-  const handleDeleteValue = (id: string) => {
+  const handleDelete = (id: string) => {
     setVault(prev => prev.filter(v => v.id !== id));
   };
 
   return (
     <Layout activeTab={activeTab} onTabChange={setActiveTab}>
-      {activeTab === AppTab.BROWSER && (
-        <BrowserSimulator 
-          onCapture={handleCapture} 
-          vault={vault} 
-          onGoToVault={() => setActiveTab(AppTab.VAULT)} 
-        />
-      )}
       {activeTab === AppTab.VAULT && (
         <VaultManager 
           vault={vault} 
-          onDelete={handleDeleteValue} 
-          onUpdate={handleUpdateValue} 
+          onUpdate={handleUpdate} 
+          onDelete={handleDelete} 
+        />
+      )}
+      {activeTab === AppTab.CAPTURE_DEMO && (
+        <BrowserSimulator 
+          onCapture={handleCapture} 
+          vault={vault} 
+          onGoToVault={() => setActiveTab(AppTab.VAULT)}
         />
       )}
       {activeTab === AppTab.SETTINGS && (
-        <div className="p-10 text-center">
-          <h2 className="text-2xl font-bold mb-4">Configuración</h2>
-          <button 
-            onClick={() => { if(confirm('¿Borrar todo?')) setVault([]); }}
-            className="px-6 py-3 bg-red-500 text-white rounded-xl font-bold hover:bg-red-600 transition-all"
-          >
-            Vaciar Bóveda Totalmente
-          </button>
+        <div className="p-12 text-center">
+          <h2 className="text-xl font-bold mb-6">Configuración de Privacidad</h2>
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 text-left max-w-md mx-auto">
+            <p className="text-sm text-slate-500 mb-6">Al activar esta opción, FormRecall ignorará automáticamente cualquier campo que detecte como sensible.</p>
+            <button 
+              onClick={() => { if(confirm('¿Seguro?')) setVault([]); }}
+              className="w-full py-3 bg-red-50 text-red-600 font-bold rounded-xl hover:bg-red-100 transition-colors"
+            >
+              Borrar todos mis datos
+            </button>
+          </div>
         </div>
       )}
     </Layout>

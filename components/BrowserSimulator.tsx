@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { SavedValue } from '../types';
 
 interface BrowserSimulatorProps {
@@ -9,116 +9,96 @@ interface BrowserSimulatorProps {
 }
 
 const BrowserSimulator: React.FC<BrowserSimulatorProps> = ({ onCapture, vault, onGoToVault }) => {
-  const [activeInput, setActiveInput] = useState<string | null>(null);
+  const [activeField, setActiveField] = useState<string | null>(null);
+  const [values, setValues] = useState<Record<string, string>>({ name: '', city: '', job: '' });
   const [isTyping, setIsTyping] = useState(false);
-  const [values, setValues] = useState({ name: '', email: '', note: '' });
-  const [showDropdown, setShowDropdown] = useState<string | null>(null);
+  const typingTimer = useRef<number | null>(null);
 
-  const handleInputChange = (field: string, val: string) => {
-    setValues(prev => ({ ...prev, [field]: val }));
+  const handleTyping = (field: string, text: string) => {
+    setValues(prev => ({ ...prev, [field]: text }));
     setIsTyping(true);
-    // Simular debounce para el indicador de guardado
-    const timer = setTimeout(() => setIsTyping(false), 1000);
-    return () => clearTimeout(timer);
+    
+    if (typingTimer.current) clearTimeout(typingTimer.current);
+    
+    typingTimer.current = window.setTimeout(() => {
+      setIsTyping(false);
+    }, 1500);
   };
 
   const handleBlur = (field: string) => {
-    const val = (values as any)[field];
-    if (val) onCapture(val);
-    setActiveInput(null);
-    setTimeout(() => setShowDropdown(null), 200);
+    const val = values[field];
+    if (val && val.length > 2) {
+      onCapture(val);
+    }
+    // Retrasar el cierre del dropdown para permitir clics
+    setTimeout(() => setActiveField(null), 200);
   };
 
-  const selectValue = (field: string, val: string) => {
-    setValues(prev => ({ ...prev, [field]: val }));
-    setShowDropdown(null);
+  const fillValue = (field: string, text: string) => {
+    setValues(prev => ({ ...prev, [field]: text }));
+    onCapture(text);
+    setActiveField(null);
   };
+
+  const inputs = [
+    { id: 'name', label: 'Nombre Completo', icon: '👤' },
+    { id: 'city', label: 'Ciudad / Dirección', icon: '📍' },
+    { id: 'job', label: 'Cargo o Profesión', icon: '💼' }
+  ];
 
   return (
-    <div className="h-full bg-slate-100 p-8 overflow-y-auto custom-scrollbar">
-      <div className="max-w-xl mx-auto space-y-8">
-        <div className="bg-white rounded-3xl p-10 shadow-xl border border-slate-200">
-          <h2 className="text-xl font-black mb-6 text-slate-800">🌐 Formulario de Prueba</h2>
-          <p className="text-xs text-slate-400 mb-8 italic">Escribe en los campos para ver cómo el orbe violeta parpadea y guarda tus datos automáticamente.</p>
-          
-          <div className="space-y-6">
-            {/* Campo 1 */}
-            <div className="relative">
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Nombre Completo</label>
-              <div className="flex items-center space-x-3">
-                <input 
-                  type="text"
-                  value={values.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
-                  onFocus={() => { setActiveInput('name'); setShowDropdown('name'); }}
-                  onBlur={() => handleBlur('name')}
-                  className="flex-1 bg-slate-50 border border-slate-200 px-5 py-3 rounded-2xl outline-none focus:border-indigo-500 transition-all font-medium"
-                  placeholder="Ej: Alex Morgan"
-                />
-                {(activeInput === 'name' && isTyping) && (
-                  <div className="pulse-icon" title="Capturando datos..." onClick={onGoToVault}></div>
+    <div className="h-full p-8 flex flex-col items-center">
+      <div className="w-full max-w-lg bg-white p-10 rounded-[2.5rem] shadow-xl border border-slate-100 relative">
+        <header className="mb-8">
+          <h3 className="text-xl font-black text-slate-800 flex items-center">
+            <span className="mr-3">🌐</span> Modo Captura Activa
+          </h3>
+          <p className="text-xs text-slate-400 mt-2 font-medium">Cualquier valor único que escribas aquí se guardará automáticamente en tu bóveda.</p>
+        </header>
+
+        <div className="space-y-6">
+          {inputs.map(input => (
+            <div key={input.id} className="relative">
+              <div className="flex justify-between items-end mb-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{input.label}</label>
+                {activeField === input.id && isTyping && (
+                  <div className="capture-indicator cursor-help" title="Guardando nuevo valor único..." onClick={onGoToVault}></div>
                 )}
               </div>
-              {showDropdown === 'name' && vault.length > 0 && (
-                <div className="autocomplete-dropdown custom-scrollbar">
-                  {vault.map(v => (
-                    <div key={v.id} className="dropdown-item" onClick={() => selectValue('name', v.value)}>
-                      {v.value}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Campo 2 */}
-            <div className="relative">
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Email</label>
-              <div className="flex items-center space-x-3">
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300">{input.icon}</span>
                 <input 
-                  type="email"
-                  value={values.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
-                  onFocus={() => { setActiveInput('email'); setShowDropdown('email'); }}
-                  onBlur={() => handleBlur('email')}
-                  className="flex-1 bg-slate-50 border border-slate-200 px-5 py-3 rounded-2xl outline-none focus:border-indigo-500 transition-all font-medium"
-                  placeholder="alex@example.com"
+                  value={values[input.id]}
+                  onChange={(e) => handleTyping(input.id, e.target.value)}
+                  onFocus={() => setActiveField(input.id)}
+                  onBlur={() => handleBlur(input.id)}
+                  className="input-minimal pl-11"
+                  placeholder={`Escribe ${input.label.toLowerCase()}...`}
                 />
-                {(activeInput === 'email' && isTyping) && (
-                  <div className="pulse-icon" title="Capturando datos..." onClick={onGoToVault}></div>
+
+                {activeField === input.id && vault.length > 0 && (
+                  <div className="elegant-dropdown custom-scrollbar">
+                    <p className="text-[9px] font-bold text-slate-300 uppercase px-3 py-2 border-b border-slate-50">Sugerencias guardadas</p>
+                    {vault.map(v => (
+                      <div 
+                        key={v.id} 
+                        className="dropdown-option"
+                        onMouseDown={() => fillValue(input.id, v.value)}
+                      >
+                        <span className="truncate">{v.value}</span>
+                        <span className="text-[10px] opacity-30">#{v.usageCount}</span>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
-              {showDropdown === 'email' && vault.filter(v => v.value.includes('@')).length > 0 && (
-                <div className="autocomplete-dropdown custom-scrollbar">
-                  {vault.filter(v => v.value.includes('@')).map(v => (
-                    <div key={v.id} className="dropdown-item" onClick={() => selectValue('email', v.value)}>
-                      {v.value}
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
-
-            {/* Campo Secreto (Ignorado) */}
-            <div className="relative">
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Contraseña (Seguro)</label>
-              <input 
-                type="password"
-                className="w-full bg-slate-50 border border-slate-200 px-5 py-3 rounded-2xl outline-none"
-                placeholder="••••••••"
-                onFocus={() => setActiveInput('pass')}
-              />
-              {activeInput === 'pass' && (
-                <p className="text-[10px] text-emerald-500 font-bold mt-2">🛡️ FormRecall ignora campos de contraseña por defecto.</p>
-              )}
-            </div>
-          </div>
-
-          <button className="w-full mt-10 btn-primary py-4 uppercase tracking-widest text-xs">Simular Envío</button>
+          ))}
         </div>
 
-        <div className="bg-indigo-50 border border-indigo-100 p-6 rounded-3xl">
-          <p className="text-xs text-indigo-700 font-medium leading-relaxed">
-            <b>Instrucciones:</b> Al escribir, el orbe violeta aparecerá. Significa que FormRecall está procesando el valor único. Si sales del campo y el valor es nuevo, se guardará en tu bóveda. Haz clic en el orbe para ir a la gestión.
+        <div className="mt-10 p-4 bg-violet-50 rounded-2xl border border-violet-100">
+          <p className="text-[11px] text-violet-700 leading-relaxed font-medium">
+            💡 <b>Tip:</b> Si escribes un nombre que no está en la base de datos, el orbe violeta parpadeará indicando que se ha registrado una nueva entrada en tu bóveda.
           </p>
         </div>
       </div>
