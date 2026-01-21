@@ -27,7 +27,7 @@ const App: React.FC = () => {
     } else {
       const welcomeEntry: SavedValue = {
         id: 'system-init-' + Date.now(),
-        value: 'FormRecall v3.1 - Motor Listo 🚀',
+        value: 'FormRecall v3.2 - Motor Listo 🚀',
         timestamp: new Date().toISOString(),
         usageCount: 1,
         isSystem: true
@@ -95,7 +95,7 @@ const App: React.FC = () => {
         <div className="p-12 text-center">
           <div className="max-w-md mx-auto bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm">
             <h2 className="text-xl font-black text-slate-800 mb-2">Configuración</h2>
-            <p className="text-xs text-slate-400 mb-8 font-medium">Versión actual: 3.1.2</p>
+            <p className="text-xs text-slate-400 mb-8 font-medium">Versión actual: 3.2.0-stable</p>
             <button 
               onClick={() => { if(confirm('¿Vaciar la bóveda?')) setVault([]); }}
               className="w-full py-4 bg-red-50 text-red-600 font-bold rounded-2xl hover:bg-red-500 hover:text-white transition-all"

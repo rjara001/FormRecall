@@ -14,8 +14,6 @@ const BrowserSimulator: React.FC<BrowserSimulatorProps> = ({ onCapture, vault, o
   const containerRef = useRef<HTMLDivElement>(null);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   
-  // --- MOCK CONTENT SCRIPT LOGIC ---
-  // Este efecto simula lo que haría un archivo 'content.js' inyectado en el navegador
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -24,7 +22,6 @@ const BrowserSimulator: React.FC<BrowserSimulatorProps> = ({ onCapture, vault, o
       setLogs(prev => [{ msg, time: new Date().toLocaleTimeString() }, ...prev].slice(0, 5));
     };
 
-    // Función que maneja cualquier input en la "página"
     const handleGlobalInput = (e: Event) => {
       const target = e.target as HTMLInputElement;
       const value = target.value;
@@ -32,7 +29,6 @@ const BrowserSimulator: React.FC<BrowserSimulatorProps> = ({ onCapture, vault, o
 
       addLog(`Evento 'input' detectado en [${name}]: "${value}"`);
 
-      // Lógica de guardado automático (Debounce simulado aquí mismo)
       if (value.trim().length >= 3) {
         onCapture(value);
         setLastSaved(value);
@@ -48,16 +44,14 @@ const BrowserSimulator: React.FC<BrowserSimulatorProps> = ({ onCapture, vault, o
     };
 
     const handleGlobalBlur = (e: FocusEvent) => {
-      // Retraso para permitir click en sugerencias
       setTimeout(() => setActiveFieldId(null), 200);
     };
 
-    // Attach native listeners to the container (Event Delegation)
     container.addEventListener('input', handleGlobalInput);
     container.addEventListener('focusin', handleGlobalFocus as EventListener);
     container.addEventListener('focusout', handleGlobalBlur as EventListener);
 
-    addLog("Content Script inyectado con éxito en la pestaña actual.");
+    addLog("Content Script v3.2 inyectado con éxito.");
 
     return () => {
       container.removeEventListener('input', handleGlobalInput);
@@ -66,12 +60,10 @@ const BrowserSimulator: React.FC<BrowserSimulatorProps> = ({ onCapture, vault, o
     };
   }, [onCapture]);
 
-  // Función para llenar manualmente desde la UI de la extensión
   const fillValue = (id: string, text: string) => {
     const input = document.getElementById(id) as HTMLInputElement;
     if (input) {
       input.value = text;
-      // Disparamos un evento nativo para que otros scripts se enteren
       input.dispatchEvent(new Event('input', { bubbles: true }));
       setActiveFieldId(null);
     }
@@ -79,7 +71,6 @@ const BrowserSimulator: React.FC<BrowserSimulatorProps> = ({ onCapture, vault, o
 
   return (
     <div className="h-full p-6 flex gap-6 bg-slate-100 overflow-hidden">
-      {/* Lado Izquierdo: La Página Web Simulada */}
       <div className="flex-1 flex flex-col items-center overflow-y-auto custom-scrollbar">
         <div 
           ref={containerRef}
@@ -122,11 +113,10 @@ const BrowserSimulator: React.FC<BrowserSimulatorProps> = ({ onCapture, vault, o
                     autoComplete="off"
                   />
                   
-                  {/* El Dropdown de la Extensión (UI Inyectada) */}
                   {activeFieldId === field.id && vault.length > 0 && (
                     <div className="elegant-dropdown border-2 border-violet-100 shadow-2xl">
                       <div className="px-4 py-2 border-b border-slate-50 flex justify-between items-center bg-slate-50/40">
-                        <span className="text-[8px] font-black text-violet-400 uppercase tracking-widest italic">FormRecall Injected</span>
+                        <span className="text-[8px] font-black text-violet-400 uppercase tracking-widest italic">FormRecall Injected v3.2</span>
                       </div>
                       {vault.map(v => (
                         <div 
@@ -151,11 +141,10 @@ const BrowserSimulator: React.FC<BrowserSimulatorProps> = ({ onCapture, vault, o
         </div>
       </div>
 
-      {/* Lado Derecho: Monitor del Content Script (Lo que la extensión "ve") */}
       <div className="w-64 bg-slate-900 rounded-[2rem] p-6 flex flex-col shadow-2xl">
         <div className="flex items-center space-x-2 mb-6">
           <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-          <h4 className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em]">Monitor de Script</h4>
+          <h4 className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em]">Monitor de Script v3.2</h4>
         </div>
         
         <div className="flex-1 space-y-4 overflow-y-auto custom-scrollbar pr-2">
