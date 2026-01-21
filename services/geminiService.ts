@@ -2,58 +2,85 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { FormEntry, FormField, AutofillSuggestion } from "../types";
 
+/**
+ * Limpia el string de respuesta para asegurar que solo contenga el JSON.
+ * A veces el modelo devuelve bloques de código Markdown even con responseMimeType.
+ */
+const sanitizeJsonString = (str: string): string => {
+  let clean = str.trim();
+  if (clean.startsWith('```')) {
+    clean = clean.replace(/^```json/, '').replace(/```$/, '').trim();
+  }
+  return clean;
+};
+
 export const getSmartAutofillSuggestions = async (
   currentFields: { name: string; label: string; type: string }[],
   history: FormEntry[]
 ): Promise<AutofillSuggestion[]> => {
-  // Always initialize GoogleGenAI inside the function call to ensure it uses current environment variables
+  if (!history || history.length === 0) {
+    console.warn("GeminiService: No hay historial para analizar.");
+    return [];
+  }
+
+  // Usamos el modelo recomendado para tareas de texto básicas
+  const modelName = 'gemini-3-flash-preview';
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-  // Extract all unique previously saved key-value pairs to build a knowledge base
-  const knowledgeBase: Record<string, string[]> = {};
+  // Construir una base de conocimiento compacta agrupando valores por concepto semántico
+  const userProfile: Record<string, Set<string>> = {};
   history.forEach(entry => {
-    entry.fields.forEach(field => {
-      if (!knowledgeBase[field.label]) knowledgeBase[field.label] = [];
-      if (!knowledgeBase[field.label].includes(field.value)) {
-        knowledgeBase[field.label].push(field.value);
-      }
-      
-      const nameKey = `field_name:${field.name}`;
-      if (!knowledgeBase[nameKey]) knowledgeBase[nameKey] = [];
-      if (!knowledgeBase[nameKey].includes(field.value)) {
-        knowledgeBase[nameKey].push(field.value);
-      }
+    entry.fields.forEach(f => {
+      const key = (f.label || f.name).toLowerCase();
+      if (!userProfile[key]) userProfile[key] = new Set();
+      userProfile[key].add(f.value);
     });
   });
 
+  // Convertir Sets a Arrays para el prompt
+  const simplifiedProfile: Record<string, string[]> = {};
+  for (const key in userProfile) {
+    simplifiedProfile[key] = Array.from(userProfile[key]);
+  }
+
   const prompt = `
-    I have a web form with the following fields:
-    ${JSON.stringify(currentFields, null, 2)}
+Actúa como un asistente de autocompletado inteligente. 
 
-    I have a database of previously filled form data (knowledge base):
-    ${JSON.stringify(knowledgeBase, null, 2)}
+HISTORIAL DEL USUARIO (Datos conocidos):
+${JSON.stringify(simplifiedProfile, null, 2)}
 
-    Analyze the current fields and the knowledge base. Suggest the most likely values for each current field.
-    Note that field names might vary (e.g., 'fname' vs 'first_name' vs 'Name'). 
-    Use your intelligence to map semantically similar fields.
-    Return only valid JSON matching the specified schema.
+CAMPOS DEL FORMULARIO ACTUAL:
+${JSON.stringify(currentFields, null, 2)}
+
+TAREA:
+Relaciona los campos del formulario actual con los datos del historial. 
+Incluso si las etiquetas no son idénticas (ej: "Nombre" vs "Full Name"), usa razonamiento semántico para encontrar la mejor coincidencia.
+
+Devuelve un array JSON con objetos que contengan:
+- fieldName: El nombre exacto del campo en el formulario actual.
+- suggestedValue: El valor más apropiado del historial.
+- confidence: Probabilidad de acierto (0.0 a 1.0).
+- reason: Breve explicación del mapeo.
+
+IMPORTANTE: Responde ÚNICAMENTE con el array JSON.
   `;
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: modelName,
       contents: prompt,
       config: {
+        systemInstruction: "Eres un experto en extracción de datos y mapeo semántico. Tu objetivo es ayudar a los usuarios a rellenar formularios basándote en su historial previo. Responde exclusivamente con un array JSON válido.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.ARRAY,
           items: {
             type: Type.OBJECT,
             properties: {
-              fieldName: { type: Type.STRING, description: "The 'name' attribute of the current form field" },
-              suggestedValue: { type: Type.STRING, description: "The most likely value from history" },
-              confidence: { type: Type.NUMBER, description: "Confidence score 0-1" },
-              reason: { type: Type.STRING, description: "Why this value was chosen" }
+              fieldName: { type: Type.STRING },
+              suggestedValue: { type: Type.STRING },
+              confidence: { type: Type.NUMBER },
+              reason: { type: Type.STRING }
             },
             required: ["fieldName", "suggestedValue", "confidence"]
           }
@@ -61,11 +88,29 @@ export const getSmartAutofillSuggestions = async (
       }
     });
 
-    // Access the .text property directly (do not call as a function)
-    const jsonStr = response.text;
-    return JSON.parse(jsonStr || "[]");
-  } catch (error) {
-    console.error("Gemini Error:", error);
+    const text = response.text;
+    console.debug("Gemini raw response:", text);
+    
+    if (!text) return [];
+
+    try {
+      const cleanText = sanitizeJsonString(text);
+      return JSON.parse(cleanText);
+    } catch (parseError) {
+      console.error("Error parseando JSON de Gemini:", parseError, text);
+      return [];
+    }
+  } catch (error: any) {
+    console.error("Error en GeminiService:", error);
+    
+    // Capturar errores comunes de autenticación o cuotas en este entorno
+    const errorMessage = error?.message || "";
+    if (errorMessage.includes("Requested entity was not found") || 
+        errorMessage.includes("API key not valid") ||
+        errorMessage.includes("API_KEY_INVALID")) {
+      throw new Error("AUTH_ERROR");
+    }
+    
     return [];
   }
 };
