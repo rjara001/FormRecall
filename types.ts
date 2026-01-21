@@ -4,6 +4,7 @@ export interface SavedValue {
   value: string;
   timestamp: string;
   usageCount: number;
+  isSystem?: boolean; // Para identificar entradas de prueba/sistema
 }
 
 export enum AppTab {
@@ -12,7 +13,6 @@ export enum AppTab {
   SETTINGS = 'settings'
 }
 
-// Added FormField interface to define the structure of form inputs
 export interface FormField {
   name: string;
   label: string;
@@ -20,7 +20,6 @@ export interface FormField {
   type: string;
 }
 
-// Added FormEntry interface to track historical form submissions
 export interface FormEntry {
   id: string;
   pageUrl: string;
@@ -29,7 +28,6 @@ export interface FormEntry {
   fields: FormField[];
 }
 
-// Added AutofillSuggestion interface for Gemini AI recommendations
 export interface AutofillSuggestion {
   fieldName: string;
   suggestedValue: string;

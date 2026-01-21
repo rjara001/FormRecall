@@ -17,7 +17,10 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
             <span className="text-lg font-black">F</span>
           </div>
           <div>
-            <h1 className="text-sm font-black text-slate-900 tracking-tight">FormRecall Vault</h1>
+            <div className="flex items-center space-x-2">
+              <h1 className="text-sm font-black text-slate-900 tracking-tight">FormRecall Vault</h1>
+              <span className="bg-violet-100 text-violet-600 text-[9px] font-black px-1.5 py-0.5 rounded-md">v3.1</span>
+            </div>
             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Memoria Activa</p>
           </div>
         </div>

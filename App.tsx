@@ -5,49 +5,60 @@ import VaultManager from './components/VaultManager';
 import BrowserSimulator from './components/BrowserSimulator';
 import { SavedValue, AppTab } from './types';
 
-const STORAGE_KEY = 'form_recall_v3_vault';
+// Cambiamos a v4 para forzar una limpieza de caché y asegurar la nueva lógica
+const STORAGE_KEY = 'form_recall_v4_vault';
 
 const App: React.FC = () => {
-  // Establecemos VAULT como pestaña principal por defecto
   const [activeTab, setActiveTab] = useState<AppTab>(AppTab.VAULT);
   const [vault, setVault] = useState<SavedValue[]>([]);
 
-  // Persistencia Local
+  // Efecto de carga inicial
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
-        setVault(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setVault(parsed);
+        }
       } catch (e) {
-        console.error("Error cargando la bóveda:", e);
+        console.error("Error al cargar bóveda:", e);
       }
+    } else {
+      // Valor por defecto para indicar que la versión cambió y el sistema funciona
+      const welcomeEntry: SavedValue = {
+        id: 'system-init',
+        value: 'FormRecall v3.1 Activado 🚀',
+        timestamp: new Date().toISOString(),
+        usageCount: 1,
+        isSystem: true
+      };
+      setVault([welcomeEntry]);
     }
   }, []);
 
+  // Sincronización con LocalStorage
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(vault));
+    if (vault.length > 0) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(vault));
+    }
   }, [vault]);
 
-  // Captura de valor único con lógica de normalización
   const handleCapture = useCallback((text: string) => {
     const val = text.trim();
-    // Requisito: Valores de al menos 2 caracteres y no secretos (implícito en el componente)
     if (!val || val.length < 2) return;
 
     setVault(prev => {
-      // Requisito: Solo valores únicos (case insensitive)
       const exists = prev.find(v => v.value.toLowerCase() === val.toLowerCase());
       
       if (exists) {
-        // Si existe, solo actualizamos el contador y el timestamp de último uso
         return prev.map(v => v.id === exists.id 
           ? { ...v, usageCount: v.usageCount + 1, timestamp: new Date().toISOString() } 
           : v
         );
       } else {
-        // Si es nuevo, lo agregamos al principio
         const newVal: SavedValue = {
-          id: crypto.randomUUID(),
+          id: Math.random().toString(36).substr(2, 9), // Fallback simple para ID
           value: val,
           timestamp: new Date().toISOString(),
           usageCount: 1
@@ -84,16 +95,13 @@ const App: React.FC = () => {
       {activeTab === AppTab.SETTINGS && (
         <div className="p-12 text-center animate-in fade-in duration-500">
           <div className="max-w-md mx-auto bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm">
-            <div className="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-6">
-              ⚠️
-            </div>
-            <h2 className="text-xl font-black text-slate-800 mb-2">Zona de Peligro</h2>
-            <p className="text-sm text-slate-400 mb-8 font-medium">Esta acción eliminará permanentemente todos los datos únicos capturados en tu dispositivo.</p>
+            <h2 className="text-xl font-black text-slate-800 mb-2">Configuración</h2>
+            <p className="text-xs text-slate-400 mb-8 font-medium italic">Versión del motor: 3.1.0-alpha</p>
             <button 
-              onClick={() => { if(confirm('¿Estás seguro de que deseas vaciar tu bóveda? Esta acción no se puede deshacer.')) setVault([]); }}
-              className="w-full py-4 bg-red-500 text-white font-bold rounded-2xl hover:bg-red-600 transition-all shadow-lg shadow-red-100 active:scale-95"
+              onClick={() => { if(confirm('¿Vaciar la bóveda?')) setVault([]); }}
+              className="w-full py-4 bg-red-50 text-red-600 font-bold rounded-2xl hover:bg-red-500 hover:text-white transition-all active:scale-95"
             >
-              Borrar toda mi Bóveda
+              Borrar Datos de Bóveda
             </button>
           </div>
         </div>
