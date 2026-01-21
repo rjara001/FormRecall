@@ -9,134 +9,174 @@ interface BrowserSimulatorProps {
 }
 
 const BrowserSimulator: React.FC<BrowserSimulatorProps> = ({ onCapture, vault, onGoToVault }) => {
-  const [activeField, setActiveField] = useState<string | null>(null);
-  const [values, setValues] = useState<Record<string, string>>({ name: '', city: '', job: '' });
-  const [isTyping, setIsTyping] = useState(false);
-  const [showIndicator, setShowIndicator] = useState(false);
+  const [activeFieldId, setActiveFieldId] = useState<string | null>(null);
+  const [logs, setLogs] = useState<{msg: string, time: string}[]>([]);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [lastSaved, setLastSaved] = useState<string | null>(null);
   
-  const typingTimer = useRef<number | null>(null);
-  const captureTimer = useRef<number | null>(null);
+  // --- MOCK CONTENT SCRIPT LOGIC ---
+  // Este efecto simula lo que haría un archivo 'content.js' inyectado en el navegador
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
 
-  // Efecto para manejar el feedback visual (parpadeo)
-  const handleTyping = (field: string, text: string) => {
-    setValues(prev => ({ ...prev, [field]: text }));
-    setIsTyping(true);
-    setShowIndicator(true);
-    
-    // Limpiar timers previos
-    if (typingTimer.current) window.clearTimeout(typingTimer.current);
-    if (captureTimer.current) window.clearTimeout(captureTimer.current);
-    
-    // Timer para el feedback visual (deja de parpadear 1s después de escribir)
-    typingTimer.current = window.setTimeout(() => {
-      setIsTyping(false);
-      setShowIndicator(false);
-    }, 1000);
+    const addLog = (msg: string) => {
+      setLogs(prev => [{ msg, time: new Date().toLocaleTimeString() }, ...prev].slice(0, 5));
+    };
 
-    // Requisito: Captura automática mientras escribe (Debounce de 700ms)
-    captureTimer.current = window.setTimeout(() => {
-      if (text.trim().length >= 2) {
-        onCapture(text);
+    // Función que maneja cualquier input en la "página"
+    const handleGlobalInput = (e: Event) => {
+      const target = e.target as HTMLInputElement;
+      const value = target.value;
+      const name = target.getAttribute('name') || target.id;
+
+      addLog(`Evento 'input' detectado en [${name}]: "${value}"`);
+
+      // Lógica de guardado automático (Debounce simulado aquí mismo)
+      if (value.trim().length >= 3) {
+        onCapture(value);
+        setLastSaved(value);
+        setTimeout(() => setLastSaved(null), 1500);
       }
-    }, 700);
-  };
+    };
 
-  const handleBlur = () => {
-    // Retrasar el cierre para permitir clics en el dropdown
-    setTimeout(() => setActiveField(null), 200);
-  };
+    const handleGlobalFocus = (e: FocusEvent) => {
+      const target = e.target as HTMLInputElement;
+      const name = target.getAttribute('name') || target.id;
+      setActiveFieldId(target.id);
+      addLog(`Campo [${name}] enfocado. Inyectando UI de FormRecall...`);
+    };
 
-  const fillValue = (field: string, text: string) => {
-    setValues(prev => ({ ...prev, [field]: text }));
-    onCapture(text); // Reforzar captura al seleccionar de la lista
-    setActiveField(null);
-  };
+    const handleGlobalBlur = (e: FocusEvent) => {
+      // Retraso para permitir click en sugerencias
+      setTimeout(() => setActiveFieldId(null), 200);
+    };
 
-  const inputs = [
-    { id: 'name', label: 'Nombre Completo', icon: '👤' },
-    { id: 'city', label: 'Ciudad o Dirección', icon: '📍' },
-    { id: 'job', label: 'Cargo o Profesión', icon: '💼' }
-  ];
+    // Attach native listeners to the container (Event Delegation)
+    container.addEventListener('input', handleGlobalInput);
+    container.addEventListener('focusin', handleGlobalFocus as EventListener);
+    container.addEventListener('focusout', handleGlobalBlur as EventListener);
+
+    addLog("Content Script inyectado con éxito en la pestaña actual.");
+
+    return () => {
+      container.removeEventListener('input', handleGlobalInput);
+      container.removeEventListener('focusin', handleGlobalFocus as EventListener);
+      container.removeEventListener('focusout', handleGlobalBlur as EventListener);
+    };
+  }, [onCapture]);
+
+  // Función para llenar manualmente desde la UI de la extensión
+  const fillValue = (id: string, text: string) => {
+    const input = document.getElementById(id) as HTMLInputElement;
+    if (input) {
+      input.value = text;
+      // Disparamos un evento nativo para que otros scripts se enteren
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      setActiveFieldId(null);
+    }
+  };
 
   return (
-    <div className="h-full p-8 flex flex-col items-center bg-slate-50 overflow-y-auto custom-scrollbar">
-      <div className="w-full max-w-lg bg-white p-10 rounded-[3rem] shadow-2xl shadow-slate-200 border border-slate-100 relative animate-in zoom-in-95 duration-300">
-        <header className="mb-10 text-center">
-          <div className="inline-block px-4 py-1.5 bg-violet-50 text-violet-600 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-4">
-            Test de Captura Activa
-          </div>
-          <h3 className="text-2xl font-black text-slate-800 mb-2">Página de Prueba</h3>
-          <p className="text-xs text-slate-400 font-medium px-4">
-            Escribe cualquier dato. FormRecall detectará el valor único y lo enviará a tu bóveda automáticamente.
-          </p>
-        </header>
-
-        <div className="space-y-8">
-          {inputs.map(input => (
-            <div key={input.id} className="relative">
-              <div className="flex justify-between items-center mb-2.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">
-                  {input.label}
-                </label>
-                {activeField === input.id && showIndicator && (
-                  <div 
-                    className="pulse-icon cursor-pointer scale-125" 
-                    title="¡Guardando en Bóveda! Haz clic para ver." 
-                    onClick={onGoToVault}
-                  ></div>
-                )}
-              </div>
-              <div className="relative">
-                <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none">
-                  {input.icon}
-                </span>
-                <input 
-                  value={values[input.id]}
-                  onChange={(e) => handleTyping(input.id, e.target.value)}
-                  onFocus={() => setActiveField(input.id)}
-                  onBlur={handleBlur}
-                  className="w-full bg-slate-50 border-2 border-slate-50 px-12 py-4 rounded-2xl outline-none focus:border-violet-400 focus:bg-white transition-all font-semibold text-slate-700"
-                  placeholder={`Escribe algo...`}
-                />
-
-                {/* Dropdown de Autocompletado Elegante */}
-                {activeField === input.id && vault.length > 0 && (
-                  <div className="elegant-dropdown custom-scrollbar border-2 border-violet-100 shadow-2xl">
-                    <div className="px-4 py-3 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Memoria FormRecall</span>
-                      <span className="text-[9px] font-bold text-violet-400">{vault.length} valores</span>
-                    </div>
-                    {vault.map(v => (
-                      <div 
-                        key={v.id} 
-                        className="dropdown-option group"
-                        onMouseDown={() => fillValue(input.id, v.value)}
-                      >
-                        <span className="truncate pr-4">{v.value}</span>
-                        <div className="flex items-center space-x-2">
-                           <span className="text-[9px] opacity-0 group-hover:opacity-40 transition-opacity font-mono">ID: {v.id.slice(0,4)}</span>
-                           <span className="bg-white/50 px-2 py-0.5 rounded-md text-[10px] shadow-sm">⚡ {v.usageCount}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+    <div className="h-full p-6 flex gap-6 bg-slate-100 overflow-hidden">
+      {/* Lado Izquierdo: La Página Web Simulada */}
+      <div className="flex-1 flex flex-col items-center overflow-y-auto custom-scrollbar">
+        <div 
+          ref={containerRef}
+          className="w-full max-w-md bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-200 relative mt-4"
+        >
+          {lastSaved && (
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-violet-600 text-white px-3 py-1 rounded-full text-[9px] font-black shadow-lg animate-bounce">
+              MEMORIZADO ✨
             </div>
-          ))}
+          )}
+
+          <header className="mb-8 border-b pb-6 border-slate-50">
+            <div className="flex items-center space-x-2 mb-2">
+              <div className="w-2 h-2 rounded-full bg-red-400"></div>
+              <div className="w-2 h-2 rounded-full bg-amber-400"></div>
+              <div className="w-2 h-2 rounded-full bg-emerald-400"></div>
+              <span className="text-[10px] text-slate-300 font-mono ml-2">https://secure.checkout.sample</span>
+            </div>
+            <h3 className="text-xl font-black text-slate-800">Finalizar Compra</h3>
+          </header>
+
+          <div className="space-y-6">
+            {[
+              { id: 'full_name', label: 'Nombre en Tarjeta', icon: '👤' },
+              { id: 'shipping_address', label: 'Dirección de Envío', icon: '🏠' },
+              { id: 'user_phone', label: 'Teléfono Móvil', icon: '📱' }
+            ].map(field => (
+              <div key={field.id} className="relative">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">
+                  {field.label}
+                </label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300">{field.icon}</span>
+                  <input 
+                    id={field.id}
+                    name={field.id}
+                    type="text"
+                    className="w-full bg-slate-50 border-2 border-slate-50 px-10 py-3.5 rounded-2xl outline-none focus:border-violet-400 focus:bg-white transition-all font-semibold text-slate-700"
+                    placeholder="Esperando entrada..."
+                    autoComplete="off"
+                  />
+                  
+                  {/* El Dropdown de la Extensión (UI Inyectada) */}
+                  {activeFieldId === field.id && vault.length > 0 && (
+                    <div className="elegant-dropdown border-2 border-violet-100 shadow-2xl">
+                      <div className="px-4 py-2 border-b border-slate-50 flex justify-between items-center bg-slate-50/40">
+                        <span className="text-[8px] font-black text-violet-400 uppercase tracking-widest italic">FormRecall Injected</span>
+                      </div>
+                      {vault.map(v => (
+                        <div 
+                          key={v.id} 
+                          className="dropdown-option"
+                          onMouseDown={() => fillValue(field.id, v.value)}
+                        >
+                          <span className="truncate pr-4">{v.value}</span>
+                          <span className="text-[10px] opacity-40 italic">historial</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <button className="w-full mt-8 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm hover:bg-black transition-colors">
+            Pagar Ahora
+          </button>
+        </div>
+      </div>
+
+      {/* Lado Derecho: Monitor del Content Script (Lo que la extensión "ve") */}
+      <div className="w-64 bg-slate-900 rounded-[2rem] p-6 flex flex-col shadow-2xl">
+        <div className="flex items-center space-x-2 mb-6">
+          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+          <h4 className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em]">Monitor de Script</h4>
+        </div>
+        
+        <div className="flex-1 space-y-4 overflow-y-auto custom-scrollbar pr-2">
+          {logs.length === 0 ? (
+            <p className="text-[10px] text-slate-500 italic">Esperando interacción en el DOM...</p>
+          ) : (
+            logs.map((log, i) => (
+              <div key={i} className="animate-in slide-in-from-right-2 duration-300">
+                <p className="text-[8px] text-slate-500 font-mono">{log.time}</p>
+                <p className="text-[10px] text-slate-300 font-medium leading-relaxed">{log.msg}</p>
+              </div>
+            ))
+          )}
         </div>
 
-        <div className="mt-12 p-6 bg-slate-900 rounded-[2rem] text-white shadow-xl shadow-slate-200">
-          <div className="flex items-start space-x-4">
-            <div className="w-10 h-10 bg-violet-600 rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-violet-900/40 font-bold">
-              ?
-            </div>
-            <div>
-              <p className="text-xs font-bold mb-1">¿Cómo funciona?</p>
-              <p className="text-[10px] text-slate-400 leading-relaxed font-medium">
-                Al detectar una cadena de texto nueva, el sistema parpadea y la indexa. Si el valor ya existe, simplemente actualiza su relevancia en tu historial para sugerírtelo primero.
-              </p>
-            </div>
+        <div className="mt-6 pt-6 border-t border-slate-800">
+          <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
+            <p className="text-[9px] text-slate-400 font-bold mb-2">MÉTODO DE ESCUCHA:</p>
+            <code className="text-[8px] text-violet-300 block bg-black/30 p-2 rounded">
+              document.addEventListener('input', (e) =&gt; ...)
+            </code>
           </div>
         </div>
       </div>
